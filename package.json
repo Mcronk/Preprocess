@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "ffmpeg": "0.0.4",
     "file-type": "^9.0.0",
     "nodemon": "^1.18.3",
     "vorpal": "^1.12.0"
