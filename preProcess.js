@@ -44,6 +44,40 @@ const stt_extra_processing = {
       'audio/webm;codecs=vorbis': '',
 };
 
+
+
+
+
+
+function buildMetadataStructure(filePath, callback) {
+  var files = {};
+  if(fs.lstatSync(filePath).isDirectory()) {//if the path is to a directory
+
+    fs.readdir(dirname, function(err, filenames) //read the files for a list of names
+      if (err) {
+        callback(err);
+      }
+      filenames.forEach(function(filename) {//for each name
+        fs.readFile(dirname + filename, 'utf-8', function(err, content) {
+          if (err) {
+            callback(err);
+          }
+
+
+
+
+
+        });
+      });//filenames.forEach
+    });
+
+
+
+  }
+
+
+
+}
 /**
 
 files = {
@@ -108,6 +142,25 @@ vorpal
 
       callback();
     });
+
+//Just extract audio from video.
+    // vorpal
+    //   .command('split <filepath>', 'Splits files over 100MB.')
+    //   .alias('s')
+    //   .action(function(args, callback) {
+    //     // console.log(args['filepath']);
+    //     var filePath = args['filepath'];
+    //
+    //    Check if audio file.
+    //
+    //     filePath = '/Users/michaelcronk/Desktop/audio.mp3';
+    //
+    //
+    //     splitAudio(filePath);
+    //
+    //     callback();
+    //   });
+
 
 vorpal
   .delimiter('Y$')
