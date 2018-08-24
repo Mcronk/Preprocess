@@ -5,27 +5,10 @@ start: npm start
 Will automatically re-run on each save of preProcess.js
 dev: npm run dev
 
-check fileType
-  if(audioType)
-  //check audioformat
-    -->prompt user to adjust format.
-  //check audiosampling
-    -->prompt user to adjust sampling
-  //check filesize
-    -->prompt user to split into pieces
 
-  //prompt user to send to STT
-    -->STT options
-  //prompt user to send to translate
-    -->rest of pipeline
-
-not Audio?  END
-
-//checks audio size, duration, sample rate, file format.  Advises how those will need to be adjusted
-//Preprocessing checks for each of those and makes the necessary changes so STT will accept the file including audio extraction from video files.
-
+Commands:
 check       (-c)   Checks for STT compatibility on audio file size, duration, sample rate, and MIMEtype.
-preprocess  (-p)   Augments files or directories of files for STT compatibility on audio file size, duration, sample rate, and MIMEtype.
+preprocess  (-)   Augments files or directories of files for STT compatibility on audio file size, duration, sample rate, and MIMEtype.
 split       (-s)   Splits audio files over 100MB and outputs the resulting paths.       
 
 
