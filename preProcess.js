@@ -6,12 +6,13 @@ const async = require('async');
 const fs = require("fs");
 //const load = require('audio-loader')
 const vorpal = require('vorpal')();
+const split = require('audio-split');
+const splitFile = require('split-file');
+const ffprobe = require('ffprobe')
+const ffprobeStatic = require('ffprobe-static');
 
-var ffprobe = require('ffprobe')
-var ffprobeStatic = require('ffprobe-static');
 
-
-var stt_content_types = [
+const stt_content_types = [
       'audio/basic',            //(Use only with narrowband models.)
       'audio/flac',
       'audio/l16',              //(Specify the sampling rate (rate) and optionally the number of channels (channels) and endianness (endianness) of the audio.)
@@ -27,7 +28,7 @@ var stt_content_types = [
       'audio/webm;codecs=vorbis'
 ];
 
-var stt_extra_processing = {
+const stt_extra_processing = {
       'audio/basic'             : 'Use only with narrowband models.',
       'audio/flac'             : '',
       'audio/l16'              : 'Specify the sampling rate (rate) and optionally the number of channels (channels) and endianness (endianness) of the audio.',
@@ -55,7 +56,7 @@ files = {
 }
 
 */
-var fileMetadata = {
+const fileMetadata = {
   'Filename'  : '',
   'MIMEType'  : '',
   'Size'      : '',
@@ -92,9 +93,26 @@ vorpal
     callback();
   });
 
+  vorpal
+    .command('split <filepath>', 'Splits files over 100MB.')
+    .alias('s')
+    .action(function(args, callback) {
+      // console.log(args['filepath']);
+      var filePath = args['filepath'];
+
+
+      filePath = '/Users/michaelcronk/Desktop/audio.mp3';
+
+
+      splitAudio(filePath);
+
+      callback();
+    });
+
 vorpal
   .delimiter('Y$')
   .show();
+
 
 function check(args) {
 
@@ -207,9 +225,9 @@ function preProcess(args) {
 
     function checkAudioFormat(filePath, callback) {
 
-      // if (getMB(filePath) >= 100) {
-      //   splitAudio(filePath);
-      // }
+      if (getMB(filePath) >= 100) {
+        splitAudio(filePath);
+      }
       getAudioInfo(filePath, function(err, info) {
         if (err) {
           callback(err);
@@ -232,10 +250,6 @@ function preProcess(args) {
     }
     console.log("Pre-process results path: " + results);
   });//end async.waterfall
-
-
-
-
 }
 
 
@@ -272,9 +286,7 @@ function extractAudio(filePath, callback) {
   } catch (e) {
     console.log('extractAudio catch: Cannot extract audio, aborting.');
     callback(e);
-
   }
-
 }
 
 
@@ -343,7 +355,12 @@ splits audio into X sized chunks for STT processing
 //Updates metadata object for the file.
 //https://www.npmjs.com/package/ffmpeg
 */
-function splitAudio() {
-  return "";
-
+function splitAudio(filePath) {
+  splitFile.splitFileBySize(filePath, 1000000)
+    .then((names) => {
+      console.log(names);
+    })
+    .catch((err) => {
+      console.log('Error: ', err);
+    });
 };

@@ -13,11 +13,13 @@
   "license": "ISC",
   "dependencies": {
     "audio-loader": "^1.0.3",
+    "audio-split": "^1.0.6",
     "ffmpeg": "0.0.4",
     "ffprobe": "^1.1.0",
     "ffprobe-static": "^2.0.0",
     "file-type": "^9.0.0",
     "nodemon": "^1.18.3",
+    "split-file": "^2.1.0",
     "vorpal": "^1.12.0"
   }
 }
