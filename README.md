@@ -21,13 +21,9 @@ dev: npm run dev
 - Writes a file that maintains the linkage between the audio file and video file
 - Dump the entire metadata object into the object we pass on to other systems/write to a json file.
 
-<ul>
-<li>FLAC if space permits for lossless.</li>
-<li>MP3 if we can afford slight compression.</li>
-</ul>
 
+FLAC if space permits for lossless. <br />
+MP3 if we can afford slight compression. <br />
 
-<ul>
-<li>CLI - Vorpal: https://github.com/dthree/vorpal</li>
-<li>Dev - Nodemon: https://nodemon.io/</li>
-</ul>
+CLI - Vorpal: https://github.com/dthree/vorpal <br />
+Dev - Nodemon: https://nodemon.io/ <br />
