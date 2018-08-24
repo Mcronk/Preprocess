@@ -7,12 +7,12 @@ dev: npm run dev
 
 
 ### Commands
-<ul>
-<li>check         (-c)   //Checks for STT compatibility on audio file size, duration, sample rate, and MIMEtype.</li>
-<li>process       (-p)   //Augments files or directories of files for STT compatibility on audio file size, duration, sample rate, and MIMEtype.</li>
-<li>split         (-s)   //Splits audio files over 100MB and outputs the resulting paths.</li>       
-<li>extractAudio  (-ev)  //Extracts audio from video files.</li>
-</ul>
+
+check         (-c)   //Checks for STT compatibility on audio file size, duration, sample rate, and MIMEtype.  <br />
+process       (-p)   //Augments files or directories of files for STT compatibility on audio file size, duration, sample rate, and MIMEtype.  <br />
+split         (-s)   //Splits audio files over 100MB and outputs the resulting paths.  <br />
+extractAudio  (-ev)  //Extracts audio from video files.  <br />
+
 
 ### TODO
 - Switch preprocess pipeline to run on directories of files
