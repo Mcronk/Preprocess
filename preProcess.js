@@ -3,9 +3,12 @@ const readChunk = require('read-chunk');
 const fileType = require('file-type');
 const ffmpeg = require('ffmpeg');
 const async = require('async');
-
+const fs = require("fs");
+//const load = require('audio-loader')
 const vorpal = require('vorpal')();
 
+var ffprobe = require('ffprobe')
+var ffprobeStatic = require('ffprobe-static');
 
 
 var stt_content_types = [
@@ -24,23 +27,34 @@ var stt_content_types = [
       'audio/webm;codecs=vorbis'
 ];
 
-var stt_extra_processing = [
+var stt_extra_processing = {
       'audio/basic'             : 'Use only with narrowband models.',
-      'audio/flac',             : '',
-      'audio/l16',              : 'Specify the sampling rate (rate) and optionally the number of channels (channels) and endianness (endianness) of the audio.',
-      'audio/mp3',              : '',
-      'audio/mpeg',             : '',
-      'audio/mulaw',            : 'Specify the sampling rate (rate) of the audio.',
-      'audio/ogg',              : 'The service automatically detects the codec of the input audio.',
-      'audio/ogg;codecs=opus',  : '',
-      'audio/ogg;codecs=vorbis',: '',
-      'audio/wav',              : 'Provide audio with a maximum of nine channels.',
-      'audio/webm',             : 'The service automatically detects the codec of the input audio.',
-      'audio/webm;codecs=opus', : '',
+      'audio/flac'             : '',
+      'audio/l16'              : 'Specify the sampling rate (rate) and optionally the number of channels (channels) and endianness (endianness) of the audio.',
+      'audio/mp3'              : '',
+      'audio/mpeg'            : '',
+      'audio/mulaw'            : 'Specify the sampling rate (rate) of the audio.',
+      'audio/ogg'              : 'The service automatically detects the codec of the input audio.',
+      'audio/ogg;codecs=opus'  : '',
+      'audio/ogg;codecs=vorbis': '',
+      'audio/wav'              : 'Provide audio with a maximum of nine channels.',
+      'audio/webm'             : 'The service automatically detects the codec of the input audio.',
+      'audio/webm;codecs=opus' : '',
       'audio/webm;codecs=vorbis': '',
-];
+};
 
+/**
 
+files = {
+
+./Users/michael/file.mp3 : fileMetadata,
+./Users/michael/file.mp3 : fileMetadata,
+./Users/michael/file.mp3 : fileMetadata,
+./Users/michael/file.mp3 : fileMetadata,
+
+}
+
+*/
 var fileMetadata = {
   'Filename'  : '',
   'MIMEType'  : '',
@@ -51,7 +65,9 @@ var fileMetadata = {
   'Filename'  : '',
   'Video'     : 'False',  //Was the audio originally part of a video
   'Split'     : 'False',  //Was the audio split into smaller files
-  'Actions'   : []        //PreProcessor Actions
+  'Actions'   : [],        //PreProcessor Actions
+  'Success'   : 'False',
+  'Error'     : 'None'
 
 }
 
@@ -63,16 +79,15 @@ vorpal
 
   preProcess(args);
 
+    callback();
+  });
 
-
-    //check fileType
-      //check audioformat
-        //prompt user to adjust format.
-      //check audiosampling
-        //prompt user to adjust sampling
-      //check filesize
-        //prompt user to split into pieces
-
+vorpal
+  .command('check <filepath>', 'Retrieves basic data on [filepath].')
+  .alias('c')
+  .action(function(args, callback) {
+    // console.log(args['filepath']);
+  check(args);
 
     callback();
   });
@@ -80,6 +95,71 @@ vorpal
 vorpal
   .delimiter('Y$')
   .show();
+
+function check(args) {
+
+  var filePath = args['filepath'];
+        filePath = '/Users/michaelcronk/Desktop/mkv.mkv';
+
+  getFileType(filePath, function (fileType) {//Get filetype
+    console.log("\x1b[0m","MIMEtype: " + fileType);
+    if (stt_content_types.indexOf(fileType) > -1) {
+      console.log("\x1b[32m","MIMEtype OKAY.");
+      var audioSize = getMB(filePath);
+      if (audioSize >= 100) {
+      console.log('\x1b[31m', "Audio file size exceeds 100mb.  Audio split necessary.");
+      }
+      else {
+        console.log('\x1b[0m',"Audio size: " + audioSize);
+        console.log('\x1b[32m',"Audio size OKAY.");
+      }
+
+
+      getAudioInfo(filePath, function(err, info) {
+        if (err) {
+          callback(err);
+        }
+        var duration = info['streams'][0]['duration'];
+        var sampleRate = info['streams'][0]['sample_rate'];
+        //var bitRate = info['streams'][0]['bit_rate:'];
+
+        console.log('\x1b[0m', "Audio duration: " + duration);
+        if (duration >= 3300) {
+          console.log('\x1b[31m', "Audio duration exceeds 3300 seconds.  Audio split necessary.");
+
+        } else {
+          console.log("\x1b[32m","Audio duration OKAY.");
+        }
+
+
+        console.log('\x1b[0m', "Audio sample rate: " + sampleRate);
+        if (sampleRate >= 8000 && sampleRate <= 16000) {
+          console.log('\x1b[33m', "Audio is in model.  Arabic STT restricted unless switched to broadband.");
+        }
+        if (sampleRate >= 16000) {
+          console.log("\x1b[0m","Audio is in broadband, no STT model restrictions.");
+          console.log("\x1b[32m","Audio sample rate OKAY.");
+
+        }
+        console.log('\x1b[0m', "\n **Check complete**");
+      })
+        //print audio sized (will it need to be broken into pieces?)
+        //print audio duration
+        //print audio sample rate (broadband vs narrowband)
+        //print audio bit rate.
+    } else if (fileType.substring(0,5) == 'video') {
+      console.log("Video MIMEtype detected: " + fileType);
+      console.log('\x1b[31m', "Audio extraction necessary.")
+    } else {//if the filetype is not STT compatible or a video with audio we can extract, abort.
+      console.log('\x1b[31m',"Incompatible filetype detected.  Aborting.");
+    }
+
+    console.log('\x1b[0m', "\n **Check complete**");
+
+  });
+
+};//end check
+
 
 
 function preProcess(args) {
@@ -92,11 +172,16 @@ function preProcess(args) {
         var args = returnArgs();
         console.log(args);
         var filePath = args['filepath'];
+        var files = {};
 
 
 
 //******DELETE ME AFTER DEV****************
-        filePath = '/Users/michaelcronk/Desktop/audio.mp3'
+        filePath = '/Users/michaelcronk/Desktop/mkvmp3.mp3';
+
+        //for each file
+
+
 
         getFileType(filePath, function (fileType) {//Get filetype
           if (stt_content_types.indexOf(fileType) > -1) {//If filetype is STT compatible, move to next stage
@@ -118,7 +203,28 @@ function preProcess(args) {
           }
         });//end getFileType
 
-    }//end processFiletype
+    },//end processFiletype
+
+    function checkAudioFormat(filePath, callback) {
+
+      // if (getMB(filePath) >= 100) {
+      //   splitAudio(filePath);
+      // }
+      getAudioInfo(filePath, function(err, info) {
+        if (err) {
+          callback(err);
+        }
+        console.log(info);
+        //adjust sampling rate
+        //adjust bit rate
+        callback(null, info);
+
+      });
+
+
+
+
+    }
 
   ], function (err, results) {
     if (err) {
@@ -145,7 +251,7 @@ function getFileType(filepath, callback) {
 };
 /**
 Extracts audio from video types
-https://www.npmjs.com/package/ffmpeg
+Returns path to mp3
 */
 function extractAudio(filePath, callback) {
   console.log("Beginning audio extraction.");
@@ -172,20 +278,44 @@ function extractAudio(filePath, callback) {
 }
 
 
-
-
-
-
-//check sampling rates
-function checkSamplingRate(filepath) {
-
-//This is really tough
-
-}
 /**
+Returns an object of audio information
+{ streams:
+  [ { index: 0,
+      codec_name: 'mp3',
+      codec_long_name: 'MP3 (MPEG audio layer 3)',
+      codec_type: 'audio',
+      codec_time_base: '1/44100',
+      codec_tag_string: '[0][0][0][0]',
+      codec_tag: '0x0000',
+      sample_fmt: 's16p',
+      sample_rate: '44100',
+      channels: 2,
+      channel_layout: 'stereo',
+      bits_per_sample: 0,
+      r_frame_rate: '0/0',
+      avg_frame_rate: '0/0',
+      time_base: '1/14112000',
+      start_pts: 353600,
+      start_time: '0.025057',
+      duration_ts: 2035998720,
+      duration: '144.274286',
+      bit_rate: '128000',
+      disposition: [Object],
+      tags: [Object] } ] }
+
+*/
+function getAudioInfo(filePath, callback) {
+  ffprobe(filePath, { path: ffprobeStatic.path }, function (err, info) {
+    if (err) {
+      callback("getAudioInfo Error: " + err);
+    }
+    callback(null, info);
+  });
+}
 
 
-
+/**
 Changes sampling for Broadband/Narrowband
 **From audio format docs**
     For broadband models, the service converts audio recorded at higher sampling rates to 16 kHz.
@@ -193,26 +323,24 @@ Changes sampling for Broadband/Narrowband
 */
 function adjustSampling() {
 //https://github.com/xdissent/node-resampler
-
 }
 
 
 
 /**
-
-
 if audio file type of (mp3, mp4, wav, ma4)
 returns audio size
 //MAX is 100mb per request (INCLUDING STREAMS)
 */
-function getSize() {
-  return "";
-};
-
+function getMB(filePath) {
+    var stats = fs.statSync(filePath);
+    return stats.size/1000000;
+}
 /**
 
 
 splits audio into X sized chunks for STT processing
+//Updates metadata object for the file.
 //https://www.npmjs.com/package/ffmpeg
 */
 function splitAudio() {

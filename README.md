@@ -21,9 +21,13 @@ check fileType
 
 not Audio?  END
 
+//checks audio size, duration, sample rate, file format.  Advises how those will need to be adjusted
+//Preprocessing checks for each of those and makes the necessary changes so STT will accept the file including audio extraction from video files.
+
+
 TODO:  
 Provide check command for individual checks (e.g. just sampling, just size, just filetype)
-Switch preprocess pipeline to run on directories of files 
+Switch preprocess pipeline to run on directories of files
 
 //FLAC if space permits for lossless.
 //MP3 if we can afford slight compression.
