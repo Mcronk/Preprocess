@@ -5,9 +5,15 @@
   "main": "preProcess.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node preProcess.js"
+    "start": "node preProcess.js",
+    "dev": "nodemon --watch preProcess.js --watch package.json"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "file-type": "^9.0.0",
+    "nodemon": "^1.18.3",
+    "vorpal": "^1.12.0"
+  }
 }
