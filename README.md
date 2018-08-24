@@ -6,18 +6,18 @@
 dev: npm run dev
 
 
-###Commands
+### Commands
 - check         (-c)   //Checks for STT compatibility on audio file size, duration, sample rate, and MIMEtype.
 - process       (-p)   //Augments files or directories of files for STT compatibility on audio file size, duration, sample rate, and MIMEtype.
 - split         (-s)   //Splits audio files over 100MB and outputs the resulting paths.       
 - extractAudio  (-ev)  //Extracts audio from video files.
 
 
-###TODO
+### TODO
 - Switch preprocess pipeline to run on directories of files
 - Do we change from narrowband to broadband to accommodate arabic
 - Separate video audio and all the other audioSize
-- writes a file that maintains the linkage between the audio file and video file
+- Writes a file that maintains the linkage between the audio file and video file
 - Dump the entire metadata object into the object we pass on to other systems/write to a json file.
 
 - FLAC if space permits for lossless.
