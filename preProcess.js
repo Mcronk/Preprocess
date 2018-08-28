@@ -209,7 +209,7 @@ function buildMetadataStructure(filePath, callback) {
         'error'     : 'None'
       }
   files[filename] = fileMetadata;
-  console.log('buildMetadataStructure callback single file');
+  console.log('buildMetadataStructure callback single file : ' + JSON.stringify(files));
 
   callback(null, files);
   }//end else
@@ -296,30 +296,30 @@ function check(args, callback) {
 
 function preProcess(args) {
 
-
-
-
-  function returnArgs() {//temporary getter.
-    return args;
+  function returnArgs() {//temporary getter.  Because waterfalls don't allow passing of arguments
+    return args;//to be clear this is a hack.
   }
 
   async.waterfall([
 
       function processFiletype(callback) {
+
         var args = returnArgs();
-        console.log(args);
         var filePath = args['filepath'];
 
-        buildMetadataStructure(filePath, function (files) {
-          Object.keys(files).forEach(function(fileName) {
+        buildMetadataStructure(filePath, function (err, files) {
+          console.log("files we got back: " + files);
+
+          async.each(Object.keys(files), function(fileName, callback) {
 
             var path = files[fileName]['path'];
+            console.log("path: " + path);
             getFileType(path, function (fileType) {//Get filetype
               files[fileName]['mimetype'] = fileType;
 
               if (stt_content_types.indexOf(fileType) > -1) {//If filetype is STT compatible, move to next stage
                 console.log("Compatible MIMEtype detected: " + fileType);
-                callback(null, files);
+                callback();
 
               } else if (fileType.substring(0,5) == 'video') {//if filetype is a video, extract mp3 audio and move to next stage
 
@@ -332,17 +332,26 @@ function preProcess(args) {
                   files[fileName]['from_video'] = 'True';
                   files[fileName]['mimetype'] = 'audio/mp3';//we changed the MimeType
 
-                  callback(null, files);
+                  callback();
                 });//end extractAudio
 
               } else {//if the filetype is not STT compatible or a video with audio we can extract, abort.
 
                 console.log("Incompatible filetype detected.  Aborting");
-                callback(new Error("Incompatible filetype detected: " + fileType));
-
+                callback();
               }
             });//end getFileType
-          });//end Object.keys(files).forEach
+          }, function(err) {//end Object.keys(files).forEach
+              if( err ) {
+                console.log('A file failed to process');
+              } else {
+                console.log('All files have been processed successfully');
+                callback(null, files);
+
+              }
+          });
+
+
         });//end buildMetadataStructure
 
     },//end processFiletype
@@ -350,13 +359,13 @@ function preProcess(args) {
     function checkAudioFormat(files, callback) {
 
       Object.keys(files).forEach(function(fileName) {
-        var filepath = files[fileName]['path'];
+        var filePath = files[fileName]['path'];
 
-        if (getMB(filepath) >= 100) {
-          splitAudio(filepath), function (err, split_names) {
+        if (getMB(filePath) >= 100) {
+          splitAudio(filePath), function (err, split_names) {
             //update the files for the names.
             split_names.forEach(function(split_name) {
-              var directory = path.dirname(filepath);
+              var directory = path.dirname(filePath);
               var newPath = directory + split_name;
 
               var fileMetadata = {
@@ -382,11 +391,11 @@ function preProcess(args) {
             delete files[fileName];//delete original now that the split files of the original have been added to files.
           }
         }
-        getAudioInfo(filepath, function(err, info) {
+        getAudioInfo(filePath, function(err, info) {
           if (err) {
             callback(err);
           }
-          console.log(info);
+          //console.log(info);
           files[fileName]['size'] = getMB(filePath);
           files[fileName]['sample_rate'] = info['streams'][0]['sample_rate'];
           files[fileName]['duration'] = getMB(filePath);
@@ -394,7 +403,7 @@ function preProcess(args) {
           files[fileName]['bit_rate'] = info['streams'][0]['bit_rate'];
           files[fileName]['channels'] = info['streams'][0]['channels'];
 
-          callback(null, info);
+          callback(null, files);
 
         });
 
@@ -407,7 +416,7 @@ function preProcess(args) {
     if (err) {
       console.log(err);
     }
-    console.log("Pre-process results path: " + results);
+    console.log("Pre-process results path: " + JSON.stringify(results));
   });//end async.waterfall
 }
 
