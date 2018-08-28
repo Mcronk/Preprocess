@@ -15,15 +15,13 @@ extractAudio  (-ev)  //Extracts audio from video files.  <br />
 
 
 ### TODO
-- Switch preprocess pipeline to run on directories of files
-- Do we change from narrowband to broadband to accommodate arabic
+- Fix check output.
+- Update metadata as things happen in preprocessing.
+- Preprocess videos vs audio vs text/docs.  Or all?
 - Separate video audio and all the other audioSize
 - Writes a file that maintains the linkage between the audio file and video file
-- Dump the entire metadata object into the object we pass on to other systems/write to a json file.
 
 
-FLAC if space permits for lossless. <br />
-MP3 if we can afford slight compression. <br />
 
 CLI - Vorpal: https://github.com/dthree/vorpal <br />
 Dev - Nodemon: https://nodemon.io/ <br />
