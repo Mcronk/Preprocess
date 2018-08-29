@@ -257,7 +257,6 @@ function check(args, callback) {
               console.log("\x1b[32m","Audio duration OKAY.");
             }
 
-
             console.log('\x1b[0m', "Audio sample rate: " + sampleRate);
             if (sampleRate >= 8000 && sampleRate <= 16000) {
               console.log('\x1b[33m', "Audio is in model.  Arabic STT restricted unless switched to broadband.");
@@ -265,9 +264,8 @@ function check(args, callback) {
             if (sampleRate >= 16000) {
               console.log("\x1b[0m","Audio is in broadband, no STT model restrictions.");
               console.log("\x1b[32m","Audio sample rate OKAY.");
-
             }
-          });
+          });//end getAudioInfo
 
         } else if (fileType.substring(0,5) == 'video') {
           console.log("Video MIMEtype detected: " + fileType);
@@ -306,9 +304,10 @@ function preProcess(args) {
 
         var args = returnArgs();
         var filePath = args['filepath'];
-
-        buildMetadataStructure(filePath, function (err, files) {
-          console.log("files we got back: " + files);
+        var files = {};
+        buildMetadataStructure(filePath, function (err, ret_files) {
+          files = ret_files;
+          console.log("files we got back: " + JSON.stringify(files));
 
           async.each(Object.keys(files), function(fileName, callback) {
 
@@ -324,45 +323,40 @@ function preProcess(args) {
               } else if (fileType.substring(0,5) == 'video') {//if filetype is a video, extract mp3 audio and move to next stage
 
                 console.log("Video MIMEtype detected: " + fileType);
-                extractAudio(filePath, function(err, newPath) {
+                extractAudio(path, function(err, newPath) {
                   if (err) {
                     callback(err);//if extractAudio returns an error, propogate it to the end of the waterfall.
                   }
                   console.log("Mp3 extracted at: " + newPath);
                   files[fileName]['from_video'] = 'True';
                   files[fileName]['mimetype'] = 'audio/mp3';//we changed the MimeType
-
                   callback();
                 });//end extractAudio
 
               } else {//if the filetype is not STT compatible or a video with audio we can extract, abort.
-
                 console.log("Incompatible filetype detected.  Aborting");
-                callback();
+                callback(err);
               }
             });//end getFileType
           }, function(err) {//end Object.keys(files).forEach
               if( err ) {
                 console.log('A file failed to process');
+                callback(err, null);
               } else {
-                console.log('All files have been processed successfully');
+                console.log('buildMetadataStructure preprocess loop complete: ');
                 callback(null, files);
 
               }
           });
-
-
         });//end buildMetadataStructure
-
     },//end processFiletype
 
-    function checkAudioFormat(files, callback) {
-
-      Object.keys(files).forEach(function(fileName) {
+    function checkAudioSize(files, callback) {
+      async.each(Object.keys(files), function(fileName, callback) {
         var filePath = files[fileName]['path'];
-
         if (getMB(filePath) >= 100) {
           splitAudio(filePath), function (err, split_names) {
+            console.log(fileName + " is too large and being split into smaller files.")
             //update the files for the names.
             split_names.forEach(function(split_name) {
               var directory = path.dirname(filePath);
@@ -373,12 +367,12 @@ function preProcess(args) {
                   'mimetype'  : files[fileName]['MIMEType'],
                   'extension' : '',
                   'size'      : '',
-                  'is_audio'   : 'False',
+                  'is_audio'  : 'False',
                   'duration'  : '',
                   'sample_rate': '',
                   'channels'  : '',
-                  'bit_rate'   : '',
-                  'from_video'     : 'False',  //Was the audio originally part of a video
+                  'bit_rate'  : '',
+                  'from_video': 'False',  //Was the audio originally part of a video
                   'split'     : 'True',  //Was the audio split into smaller files
                   'success'   : 'False',
                   'error'     : 'None'
@@ -387,15 +381,34 @@ function preProcess(args) {
 
               console.log(split_names);
               console.log(newPath);
+              callback();
             });
             delete files[fileName];//delete original now that the split files of the original have been added to files.
           }
+        }//end if (getMB(filePath) >= 100) //i.e. if the file is too big for STT.
+        else {
+          callback();
         }
+
+      }, function(err) { //end Object.keys()
+        if (err) {
+          callback(err);
+        }
+         else {
+          console.log('audioSize preprocess loop complete: ');
+          callback(null, files);
+        }
+      });//end function(err)
+    },
+    function checkAudioInfo(files, callback) {
+      console.log("got to checkAudioInfo");
+      async.each(Object.keys(files), function(fileName, callback) {
+        var filePath = files[fileName]['path'];
+
         getAudioInfo(filePath, function(err, info) {
           if (err) {
             callback(err);
           }
-          //console.log(info);
           files[fileName]['size'] = getMB(filePath);
           files[fileName]['sample_rate'] = info['streams'][0]['sample_rate'];
           files[fileName]['duration'] = getMB(filePath);
@@ -406,17 +419,21 @@ function preProcess(args) {
           callback(null, files);
 
         });
-
-      })//end Object.keys
-
-
-    }
-
+      }, function(err) {//end Object.keys(files).forEach
+          if( err ) {
+            console.log('A file failed to process');
+            callback(err);
+          } else {
+            console.log('checkAudioInfo complete');
+            callback(null, files);
+          }
+        });
+  }//end checkAudioInfo
   ], function (err, results) {
     if (err) {
       console.log(err);
     }
-    console.log("Pre-process results path: " + JSON.stringify(results));
+    console.log("Pre-process results: " + JSON.stringify(results));
   });//end async.waterfall
 }
 
