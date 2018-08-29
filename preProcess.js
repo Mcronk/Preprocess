@@ -1,6 +1,7 @@
 
 const readChunk = require('read-chunk');
 const fileType = require('file-type');
+var mime = require('mime-types');//when file-type magic number fails.
 const ffmpeg = require('ffmpeg');
 const async = require('async');
 const fs = require("fs");
@@ -25,6 +26,24 @@ const stt_content_types = [
       'audio/wav',              //(Provide audio with a maximum of nine channels.)
       'audio/webm',             //(The service automatically detects the codec of the input audio.)
       'audio/webm;codecs=opus',
+      'audio/webm;codecs=vorbis'
+];
+
+const text_content_types = [
+      'text/csv', //.csv
+      'application/msword', //doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', //docx
+      'text/html', //html
+      'application/pdf', //pdf
+      'application/json', //json
+      'application/rtf', //rtf
+      'application/vnd.ms-powerpoint', //ppt
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', //pptx
+      'application/xml', //xml
+
+
+
+
       'audio/webm;codecs=vorbis'
 ];
 
@@ -270,6 +289,8 @@ function check(args, callback) {
         } else if (fileType.substring(0,5) == 'video') {
           console.log("Video MIMEtype detected: " + fileType);
           console.log('\x1b[31m', "Audio extraction necessary.")
+        } else if (text_content_types.indexOf(fileType) > -1) {  //is it a discovery compatible doc.
+          console.log(fileName + " is a " + fileType + ".  No early-stage processing needed for discovery ingestion.");
         } else {//if the filetype is not STT compatible or a video with audio we can extract, abort.
           console.log('\x1b[31m',"Incompatible filetype detected.  Aborting.");
         }
@@ -307,8 +328,6 @@ function preProcess(args) {
         var files = {};
         buildMetadataStructure(filePath, function (err, ret_files) {
           files = ret_files;
-          console.log("files we got back: " + JSON.stringify(files));
-
           async.each(Object.keys(files), function(fileName, callback) {
 
             var path = files[fileName]['path'];
@@ -319,6 +338,8 @@ function preProcess(args) {
               if (stt_content_types.indexOf(fileType) > -1) {//If filetype is STT compatible, move to next stage
                 console.log("Compatible MIMEtype detected: " + fileType);
                 callback();
+
+              } else if (text_content_types.indexOf(fileType) > -1) {
 
               } else if (fileType.substring(0,5) == 'video') {//if filetype is a video, extract mp3 audio and move to next stage
 
@@ -441,12 +462,25 @@ function preProcess(args) {
 /**
 
 Returns filetype based on file buffer magic number.
-https://en.wikipedia.org/wiki/Magic_number_(programming)#Magic_numbers_in_files
 */
 function getFileType(filepath, callback) {
   const buffer = readChunk.sync(filepath, 0, 4100);
   var type = fileType(buffer);
-  callback(type['mime']);
+  if (typeof type !== 'undefined' && type) {
+    console.log("Type: " + typeof type['mime']);
+    callback(type['mime']);
+  } else { //if magic number lookup fails.
+    var type = mime.contentType(path.extname('/path/to/file.json'));
+
+
+    var type = type.split(';')[0];
+    console.log(type);
+    callback(type);
+
+
+
+  }
+
 };
 /**
 Extracts audio from video types

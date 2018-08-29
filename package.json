@@ -18,6 +18,7 @@
     "ffprobe": "^1.1.0",
     "ffprobe-static": "^2.0.0",
     "file-type": "^9.0.0",
+    "mime-types": "^2.1.20",
     "nodemon": "^1.18.3",
     "path": "^0.12.7",
     "split-file": "^2.1.0",
